@@ -1,3 +1,4 @@
+
 from collections import OrderedDict
 import string
 
@@ -38,7 +39,7 @@ def structure_ref_text(ref_text):
     
     ''' To complete structuring of the data, each line should be two strings followed by a number
 
-        To fix malformed data, we can take advantage of the fact that an extra string is often equal to a string on the same line and just filter for duplicates
+        To fix malformed data, we can take advantage of the fact that an extra string is often equal to a string on the same line
     '''
     structured_text = []
     line = []
@@ -68,7 +69,7 @@ def make_ref_dict(unstructured_text):
 
         Data format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
     '''
-    ref_dict = OrderedDict()
+    alc_ref = OrderedDict()
     while len(structured_text) > 2:
         ''' Remove entries from the head of the structured text list in order of our desired structure '''
         brand = structured_text.pop(0)
@@ -77,15 +78,13 @@ def make_ref_dict(unstructured_text):
 
         ''' If brand not already in reference dictionary, initialize an OrderedDict
 
-            One can reference a specific brand and beer and receive its alcohol content like so:
-            
-            ref_dict['brand']['beer']
+            Access alcohol percentage using alc_ref['brand']['beer']
         '''
-        if brand not in ref_dict:
-            ref_dict[brand] = OrderedDict()
-        ref_dict[brand][beer] = alcohol_pct
+        if brand not in alc_ref:
+            alc_ref[brand] = OrderedDict()
+        alc_ref[brand][beer] = alcohol_pct
         
-    return ref_dict
+    return alc_ref
 
 
 def get_alc_reference():
@@ -100,10 +99,8 @@ def get_alc_reference():
 
     pages_text = []
     for page in pages:
-        '''
-            An XPath is used to extract the tags we need, which is determined by looking at the page source
-
-            See: http://www.w3schools.com/xpath/xpath_syntax.asp
+        ''' For info on XPaths, see:
+                http://www.w3schools.com/xpath/xpath_syntax.asp
         '''
         pages_text += page.xpath('//table[@cellpadding="2"][2]/tr/td//text()')
 
