@@ -12,13 +12,13 @@ from urlparse import urlparse
 import requests
 
 from alc_reference import get_alc_reference
-from beer import Beer
+from beerkeg import BeerKeg
 from utils import get_html, is_num, unique
 
 import lxml.html as lh
 
 
-def get_bevmo_beers():
+def get_bevmo_kegs(limit=1000):
     '''     For info on XPaths, see:
 
             http://www.w3schools.com/xpath/xpath_syntax.asp
@@ -35,9 +35,9 @@ def get_bevmo_beers():
     new_beer_links = []
     beer_links = []
 
-    ''' List to hold Beer keg objects '''
-    beers = []
-    while len(page_links) > 0:
+    ''' List to hold BeerKeg objects '''
+    beer_kegs = []
+    while len(page_links) > 0 and len(beer_kegs) < limit:
         ''' Links are removed as they are crawled '''
         page_link = page_links.pop(0)
 
@@ -45,7 +45,7 @@ def get_bevmo_beers():
         new_beer_links[:] = unique(get_html(page_link).xpath('//a[@class="ProductListItemLink"]/@href'))
         beer_links += map(lambda x: base_url + x, new_beer_links)
         for link in beer_links:
-            beers.append(Beer(link, verbose=True))
+            beer_kegs.append(BeerKeg(link, verbose=True))
 
         try:
             ''' A typical link looks like Shop/ProductList.aspx/_/N-15Z1z141vn/No-100?DNID=Beer
@@ -60,35 +60,75 @@ def get_bevmo_beers():
         except Exception as e:
             assert e
 
-    return beers
+    return beer_kegs
+
+
+def get_optimal_keg(beer_kegs):
+    ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
+
+        alc_ref['first brand letter']['brand']['beer'] to get alcohol %
+    '''
+    alc_ref = get_alc_reference()
+
+    ''' Find most optimal, in-stock beer by alcohol in gallons per dollar
+    
+        We assume the first letter of the keg name and reference brand are equal
+    
+        Exploiting this and sorting the lists could improve lookup performance
+    '''
+    optimal_keg = None
+    optimal_ratio = 0
+    keg_ratio = 0
+    for keg in beer_kegs:
+        try:
+            ''' Retrieve the reference dictionary subset by matching the first letter of the keg '''
+            ''' Does not seem to work too well so far '''
+            print 'checking keg {}'.format(keg.name)
+            sub_alc_ref = alc_ref[keg.name[0]]
+            print 'possible brands: '
+            for brand in sub_alc_ref.iterkeys():
+                if any(brand.split()) in keg.name:
+                    print 'matched brand {} to keg {}'.format(brand, keg.name)
+                    print 'possible beers: '
+                    for beer in sub_alc_ref[brand].iterkeys():
+                        if any(beer.split()) in keg.beer:
+                            print 'matched beer {} to kegs {}'.format(beer, keg.beer)
+                            keg_ratio = keg.get_ratio(sub_alc_ref[brand][beer])
+                            if keg_ratio > optimal_ratio:
+                                optimal_keg = keg
+                                optimal_ratio = keg_ratio
+                        else:
+                            print beer, ',',
+                    print '\n'
+                else:
+                    print brand, ',',
+                print '\n'
+        except Exception as e:
+            assert e
+
+    return optimal_keg, optimal_ratio
 
 
 def run():
-    ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
-
-        Access alcohol percentage using alc_ref['brand']['beer']
-    '''
-    #alc_ref = get_alc_reference()
-
-    ''' Currently prints the contents of the alcohol reference dict '''
-    '''
-    for brand in alc_ref.iterkeys():
-        for beer in alc_ref[brand].iterkeys():
-            print brand + ',', beer + ',', alc_ref[brand][beer] + '%'
-    '''
-
-    ''' members in Beer object:
+    ''' fields in BeerKeg object:
 
             self.name    (may include brewery/brand and/or beer)
-            self.price
-            self.volume
-            self.num_avail
-            self.desc
+            self.price   (USD)
+            self.volume  (Gallons)
+            self.num_avail  (kegs)
+            self.desc    (keg description)
+
+        Get beer keg info and sort it by name
     '''
-    beers = get_bevmo_beers()
-    print 'Printing beers'
-    for b in beers:
-        print b.name, b.price, b.volume, b.num_avail, b.desc 
+    ''' Limit set to 50 for testing '''
+    beer_kegs = sorted(get_bevmo_kegs(50), key=lambda x: x.name)
+
+    ''' Print info of optimal beer keg and open page '''
+    optimal_keg, optimal_ratio = get_optimal_keg(beer_kegs)
+    try:
+        print optimal_keg.name, 'Ratio: ', str(optimal_ratio), '\n', optimal_keg.desc
+    except Exception as e:
+        assert e
 
 
 

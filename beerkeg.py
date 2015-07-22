@@ -7,28 +7,33 @@ from utils import get_html, is_num, unique
 
 
 
-class Beer(object):
-    ''' Self-parsing Beer keg class '''
+class BeerKeg(object):
+    ''' Self-parsing Beer Keg class given a url '''
     def __init__(self, url, verbose=False):
-        ''' url must be a string containing the url for a single BevMo keg
+        ''' url must be a string containing the url for a single BevMo keg '''
+        self.url = url
 
-            verbose is a flag that prints the contents of the Beer object during parsing
-        
-            parse(url) retrieves the page and parses the contents into the following members
+        ''' verbose is a flag that prints the contents of the Beer object during parsing '''
+        self.verbose = verbose
+
+        ''' parse(url) retrieves the page and parses the contents into the following fields
 
                 self.name    (may include brewery/brand and/or beer)
-                self.price
-                self.volume
-                self.num_avail
-                self.desc
+                self.price   (USD)
+                self.volume  (Gallons)
+                self.num_avail  (kegs)
+                self.desc    (keg description)
         '''
-        self.url = url
-        self.verbose = verbose
         self.parse(url)
 
 
     def open(self):
         webbrowser.open(url)
+
+
+    def get_ratio(self, alcohol_pct):
+        ''' Returns the volume of alcohol per USD '''
+        return (alcohol_pct * .1 * self.volume) / self.price
 
 
     def parse(self, url):
@@ -66,18 +71,14 @@ class Beer(object):
             self.num_avail = int(html.xpath('//em/text()')[0].strip().split()[0])
 
             if self.verbose:
-                sys.stderr.write(str(self.num_avail) + ', ')
+                sys.stderr.write(str(self.num_avail) + '\n')
         except Exception as e:
             self.num_avail = ''
         
         ''' Attempt to get description '''
         try:
             self.desc = html.xpath('//td[@class="ProductDetailCell"]/p/text()')[0].strip()
-
-            if self.verbose:
-                sys.stderr.write(self.desc + '\n')
         except Exception as e:
             self.desc = ''
-
 
 
