@@ -1,5 +1,6 @@
 
 import sys
+import webbrowser
 
 from alc_reference import get_alc_reference
 from utils import get_html, is_num, unique

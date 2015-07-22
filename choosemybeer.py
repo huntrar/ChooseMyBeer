@@ -10,7 +10,6 @@
 import sys
 from urlparse import urlparse
 import requests
-import webbrowser
 
 from alc_reference import get_alc_reference
 from beer import Beer
