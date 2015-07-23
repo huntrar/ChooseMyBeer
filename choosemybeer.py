@@ -10,7 +10,6 @@
 import heapq
 import sys
 from urlparse import urlparse
-import requests
 
 from alc_reference import get_alc_reference
 from beerkeg import BeerKeg
