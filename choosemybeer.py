@@ -19,11 +19,11 @@ import lxml.html as lh
 
 
 def get_optimal_keg(num_kegs, page_limit=10000):
-    ''' Gets kegs from BevMo and cross references them with Realbeer alcohol percentage reference
-
-        Keeps track and returns the kegs with the highest ratio of gallons of alcohol per dollar
+    ''' Gets kegs from BevMo and cross references them with Realbeer beers and their alcohol percentages
 
         num_kegs is the number of optimal kegs to return and page_limit is the max number of keg pages to crawl
+
+        Returns the kegs with the highest ratio of gallons of alcohol per dollar
     '''
 
     ''' The first url to crawl and its base url '''
@@ -67,7 +67,7 @@ def get_optimal_keg(num_kegs, page_limit=10000):
         beer_links += map(lambda x: base_url + x, new_beer_links)
 
         ''' Crawl the beer keg links and get the gallons of alcohol/dollar ratio '''
-        for i, link in enumerate(beer_links):
+        for link in beer_links:
             beer_id = link.split('/')[-1]
             if beer_id not in crawled_beers:
                 crawled_beers.add(beer_id)
@@ -97,7 +97,7 @@ def get_optimal_keg(num_kegs, page_limit=10000):
 
         ''' A typical link looks like Shop/ProductList.aspx/_/N-15Z1z141vn/No-100?DNID=Beer
 
-            If the number following No- is evenly divisible by 100, it leads to more pages which are added here
+            If the number following No- is evenly divisible by 100, it leads to more pages which are then added
         '''
         if 'No-' in page_link and int(page_link.split('No-')[1].split('?')[0]) % 100 == 0:
             ''' Unique new page links with their base url appended '''
