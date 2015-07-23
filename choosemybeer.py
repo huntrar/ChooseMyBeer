@@ -7,6 +7,7 @@
 #                                                           #
 #############################################################
 
+import heapq
 import sys
 from urlparse import urlparse
 import requests
@@ -18,117 +19,137 @@ from utils import get_html, is_num, unique
 import lxml.html as lh
 
 
-def get_bevmo_kegs(limit=1000):
+def get_optimal_keg(num_kegs, page_limit=10000):
+    ''' Gets kegs from BevMo and cross references them with Realbeer alcohol percentage reference
+
+        Keeps track and returns the kegs with the highest ratio of gallons of alcohol per dollar
+
+        num_kegs is the number of optimal kegs to return and page_limit is the max number of keg pages to crawl
+    '''
+
+    ''' The first url to crawl and its base url '''
+    seed_url = "http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer"
+    base_url = '{url.scheme}://{url.netloc}'.format(url=urlparse(seed_url))
+
+    ''' Initialize unique page links taken from the seed url
+    
+        The base url is then appended to links as they have no domain
+    '''
+    init_page_links = []
+
     '''     For info on XPaths, see:
 
             http://www.w3schools.com/xpath/xpath_syntax.asp
     '''
-    seed_url = "http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer"
-    base_url = '{url.scheme}://{url.netloc}'.format(url=urlparse(seed_url))
-
-    ''' Unique new page links with their base url appended '''
+    init_page_links[:] = unique(get_html(seed_url).xpath('//div[@class="ProductListPaging"]/a/@href'))
+    page_links = [seed_url] + map(lambda x: base_url + x, init_page_links)
     new_page_links = []
-    new_page_links[:] = unique(get_html(seed_url).xpath('//div[@class="ProductListPaging"]/a/@href'))
-    page_links = map(lambda x: base_url + x, new_page_links)
 
     ''' Lists for holding links to individual beer kegs '''
     new_beer_links = []
     beer_links = []
+    
+    ''' To keep track of already crawled beers '''
+    crawled_beers = set()
 
-    ''' List to hold BeerKeg objects '''
-    beer_kegs = []
-    while len(page_links) > 0 and len(beer_kegs) < limit:
+    ''' List to hold top beer kegs, the size of optimal_kegs is limited by the num_kegs argument '''
+    optimal_kegs = []
+
+    ''' The alcohol reference dictionary, where the alcohol percentages reside '''
+    alc_ref = get_alc_reference()
+
+    keg = None
+    while len(page_links) > 0 and len(crawled_beers) < page_limit:
         ''' Links are removed as they are crawled '''
         page_link = page_links.pop(0)
 
         ''' Beer keg links '''
         new_beer_links[:] = unique(get_html(page_link).xpath('//a[@class="ProductListItemLink"]/@href'))
         beer_links += map(lambda x: base_url + x, new_beer_links)
-        for link in beer_links:
-            beer_kegs.append(BeerKeg(link, verbose=True))
 
-        try:
-            ''' A typical link looks like Shop/ProductList.aspx/_/N-15Z1z141vn/No-100?DNID=Beer
+        ''' Crawl the beer keg links and get the gallons of alcohol/dollar ratio '''
+        for i, link in enumerate(beer_links):
+            beer_id = link.split('/')[-1]
+            if beer_id not in crawled_beers:
+                crawled_beers.add(beer_id)
 
-                If the number following No- is evenly divisible by 100 it leads to more pages
+                keg = BeerKeg(link, verbose=True)
 
-            '''
-            if 'No-' in page_link and (page_link.split('No-')[1].split('?')[0] % 100) == 0:
-                ''' Unique new page links with their base url appended '''
-                new_page_links[:] = unique(get_html(page_link).xpath('//div[@class="ProductListPaging"]/a/@href'))
-                page_links += map(lambda x: base_url + x, new_page_links)
-        except Exception as e:
-            assert e
+                ''' Gets the gallons of alcohol per dollar ratio for the keg '''
+                ratio = keg.get_ratio(alc_ref)
 
-    return beer_kegs
-
-
-def get_optimal_keg(beer_kegs):
-    ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
-
-        alc_ref['first brand letter']['brand']['beer'] to get alcohol %
-    '''
-    alc_ref = get_alc_reference()
-
-    ''' Find most optimal, in-stock beer by alcohol in gallons per dollar
-    
-        We assume the first letter of the keg name and reference brand are equal
-    
-        Exploiting this and sorting the lists could improve lookup performance
-    '''
-    optimal_keg = None
-    optimal_ratio = 0
-    keg_ratio = 0
-    for keg in beer_kegs:
-        try:
-            ''' Retrieve the reference dictionary subset by matching the first letter of the keg '''
-            ''' Does not seem to work too well so far '''
-            print 'checking keg {}'.format(keg.name)
-            sub_alc_ref = alc_ref[keg.name[0]]
-            print 'possible brands: '
-            for brand in sub_alc_ref.iterkeys():
-                if any(brand.split()) in keg.name:
-                    print 'matched brand {} to keg {}'.format(brand, keg.name)
-                    print 'possible beers: '
-                    for beer in sub_alc_ref[brand].iterkeys():
-                        if any(beer.split()) in keg.beer:
-                            print 'matched beer {} to kegs {}'.format(beer, keg.beer)
-                            keg_ratio = keg.get_ratio(sub_alc_ref[brand][beer])
-                            if keg_ratio > optimal_ratio:
-                                optimal_keg = keg
-                                optimal_ratio = keg_ratio
-                        else:
-                            print beer, ',',
-                    print '\n'
+                ''' Maintain a sorted list of the current top 3 kegs using heapq (heap queue algorithm)
+                
+                    optimal_kegs holds a tuple containing the ratio and keg associated with it
+                '''
+                if optimal_kegs:
+                    for opt_tuple in optimal_kegs:
+                        ''' If ratio is greater than any keg ratio currently in optimal_kegs then add it '''
+                        if ratio > opt_tuple[0]:
+                            if len(optimal_kegs) >= num_kegs:
+                                ''' Adds new item to list and removes the smallest to maintain proper size '''
+                                heapq.heappushpop(optimal_kegs, (ratio, keg)) 
+                            else:
+                                heapq.heappush(optimal_kegs, (ratio, keg)) 
+                            break
                 else:
-                    print brand, ',',
-                print '\n'
-        except Exception as e:
-            assert e
+                    ''' Will only occur for the very first keg crawled '''
+                    heapq.heappush(optimal_kegs, (ratio, keg))
 
-    return optimal_keg, optimal_ratio
+        ''' A typical link looks like Shop/ProductList.aspx/_/N-15Z1z141vn/No-100?DNID=Beer
+
+            If the number following No- is evenly divisible by 100, it leads to more pages which are added here
+        '''
+        if 'No-' in page_link and int(page_link.split('No-')[1].split('?')[0]) % 100 == 0:
+            ''' Unique new page links with their base url appended '''
+            new_page_links[:] = unique(get_html(page_link).xpath('//div[@class="ProductListPaging"]/a/@href'))
+            page_links += map(lambda x: base_url + x, new_page_links)
+
+    ''' Sort the list in descending order by ratio (index 0 in the keg tuple)  '''
+    return sorted(optimal_kegs, key=lambda x: x[0], reverse=True)
 
 
 def run():
-    ''' fields in BeerKeg object:
+    ''' Get the top 3 optimal kegs, you can also pass an optional page limit argument for testing '''
+    optimal_kegs = get_optimal_keg(num_kegs=3)
 
-            self.name    (may include brewery/brand and/or beer)
-            self.price   (USD)
-            self.volume  (Gallons)
-            self.num_avail  (kegs)
-            self.desc    (keg description)
+    ratio = 0
+    keg = None
 
-        Get beer keg info and sort it by name
-    '''
-    ''' Limit set to 50 for testing '''
-    beer_kegs = sorted(get_bevmo_kegs(50), key=lambda x: x.name)
-
-    ''' Print info of optimal beer keg and open page '''
-    optimal_keg, optimal_ratio = get_optimal_keg(beer_kegs)
     try:
-        print optimal_keg.name, 'Ratio: ', str(optimal_ratio), '\n', optimal_keg.desc
-    except Exception as e:
-        assert e
+        printing = True
+        optimal_keg = None
+        chosen_keg = -1
+        quit = 0
+
+        ''' Loop until user decides to quit '''
+        while printing and chosen_keg != quit:
+            ''' keg_tuple is ratio followed by BeerKeg object '''
+            for i, keg_tuple in enumerate(optimal_kegs):
+                ratio = keg_tuple[0]
+                keg = keg_tuple[1]
+
+                print('\n{}. {}\tRatio: {}'.format(i, keg.name, ratio))
+                print('Available: {}\tVolume: {} Gal.\tPrice: ${}\n{}'.format(keg.num_avail, keg.volume, keg.price, keg.desc))
+
+                ''' Make quit always be the last menu option '''
+                quit = i+1
+            print('\n{}. Quit'.format(quit))
+
+            try:
+                chosen_keg = int(raw_input('Choose a keg: '))
+            except Exception:
+                continue
+
+            ''' If chosen keg is within the optimal kegs range (quit is one outside), then open the link '''
+            if chosen_keg >= 0 and chosen_keg < len(optimal_kegs):
+                optimal_keg = optimal_kegs[chosen_keg][1]
+
+                ''' Opens the link to the keg in a browser using webbrowser '''
+                optimal_keg.open()
+
+    except KeyboardInterrupt:
+        sys.exit()
 
 
 

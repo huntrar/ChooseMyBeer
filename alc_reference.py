@@ -76,24 +76,20 @@ def make_ref_dict(unstructured_text):
         beer = structured_text.pop(0)
         alcohol_pct = structured_text.pop(0)
 
-        ''' If brand not already in reference dictionary, initialize an OrderedDict '''
+        ''' There may be greater than or less than symbols in alcohol_pct that are removed '''
+        if '<' in alcohol_pct or '>' in alcohol_pct:
+            alcohol_pct = alcohol_pct.replace('<', '').replace('>', '')
+
+        ''' If alcohol_pct is a range just take the average for simplicity's sake '''
+        if '-' in alcohol_pct:
+            alcohol_pct = sum(map(int, alcohol_pct.split('-')))
+
+        ''' If brand not already in reference dictionary, initialize a dict '''
         if brand not in alc_ref:
-            alc_ref[brand] = OrderedDict()
-        alc_ref[brand][beer] = alcohol_pct
+            alc_ref[brand] = {}
+        alc_ref[brand][beer] = float(alcohol_pct)
 
-    ''' Now we encapsulate our alcohol reference in another OrderedDict
-
-        This time the key value is the first letter of the brand name
-
-        We do this to improve lookup time while using the alcohol reference
-
-        alc_ref['first brand letter']['brand']['beer'] to get alcohol %
-    ''' 
-    organized_alc_ref = OrderedDict()
-    for brand in alc_ref.iterkeys():
-        organized_alc_ref[brand[0]] = alc_ref[brand]
-
-    return organized_alc_ref
+    return alc_ref
 
 
 def get_alc_reference():

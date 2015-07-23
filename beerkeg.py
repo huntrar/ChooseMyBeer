@@ -7,15 +7,34 @@ from utils import get_html, is_num, unique
 
 
 class BeerKeg(object):
-    ''' Self-parsing Beer Keg class given a url '''
+    ''' Beer Keg class
+        
+        parse() will retrieve the url and parse it into its relevant fields
+    
+        match() finds the proper alcohol percentage and will invoke parse() if not done already
+        
+        get_ratio() calls match() and returns the ratio of gallons of alcohol per dollar
+    '''
     def __init__(self, url, verbose=False):
         ''' url must be a string containing the url for a single BevMo keg '''
         self.url = url
 
-        ''' verbose is a flag that prints the contents of the Beer object during parsing '''
+        ''' Prints contents of the object during parsing and also whether a match occurs '''
         self.verbose = verbose
 
-        ''' parse(url) retrieves the page and parses the contents into the following fields
+        ''' Flag to prevent parsing more than once '''
+        self.parsed = False
+
+        ''' The ratio of gallons of alcohol per dollar '''
+        self.ratio = None
+
+
+    def open(self):
+        webbrowser.open(self.url)
+
+
+    def parse(self):
+        ''' retrieves the page and parses the contents into the following fields
 
                 self.name    (May include brewery/brand and/or beer)
                 self.price   (USD)
@@ -23,22 +42,14 @@ class BeerKeg(object):
                 self.num_avail  (Kegs)
                 self.desc    (Keg description)
         '''
-        self.parse(url)
+        if self.parsed:
+            return
 
+        self.parsed = True
 
-    def open(self):
-        webbrowser.open(url)
+        html = get_html(self.url)
 
-
-    def get_ratio(self, alcohol_pct):
-        ''' Returns the volume of alcohol per USD '''
-        return (alcohol_pct * .1 * self.volume) / self.price
-
-
-    def parse(self, url):
-        html = get_html(url)
-
-        ''' Attempt to get name and volume and return if either fails '''
+        ''' Attempt to get name and volume '''
         try:
             self.name = html.xpath('//h1/text()')[0].strip()
             if '(' in self.name and ')' in self.name:
@@ -49,42 +60,78 @@ class BeerKeg(object):
                     if is_num(volume):
                         self.volume = float(volume)
                     else:
-                        ''' Failed to retrieve volume, which is necessary for computation '''
                         print('Failed to retrieve volume!')
-                        return
-
-                    if self.verbose:
-                        print(self.name + ', ')
-                        print(str(self.volume) + ', ')
+                        self.volume = 0.0
             else:
-                ''' Failed to retrieve volume, which is necessary for computation '''
                 print('Failed to retrieve volume!')
-                return
+                self.volume = 0.0
         except Exception as e:
-            assert e
+            self.name = ''
+            self.volume = 0.0
             
-        ''' Attempt to get price and return if it fails '''
+        ''' Attempt to get price '''
         try:
-            self.price = float(html.xpath('//span[@class="ProductDetailItemPrice"]/text()')[0].strip())
-
-            if self.verbose:
-                print(str(self.price) + ', ')
+            self.price = float(html.xpath('//span[@class="ProductDetailItemPrice"]/text()')[0].strip().strip('$'))
         except Exception as e:
-            assert e
+            self.price = 0.0
        
         ''' Attempt to get number of available kegs '''
         try:
             self.num_avail = int(html.xpath('//em/text()')[0].strip().split()[0])
-
-            if self.verbose:
-                print(str(self.num_avail) + '\n')
         except Exception as e:
-            self.num_avail = ''
+            self.num_avail = 0
         
         ''' Attempt to get description '''
         try:
             self.desc = html.xpath('//td[@class="ProductDetailCell"]/p/text()')[0].strip()
         except Exception as e:
             self.desc = ''
+
+
+    def match(self, alc_ref):
+        ''' Attempts to match keg to a beer in the alcohol reference
+        
+            Returns None or the alcohol % found
+        '''
+        matched_words = []
+
+        if not self.parsed:
+            self.parse()
+
+        ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
+
+            alc_ref['first brand letter']['brand']['beer'] to get alcohol %
+        '''
+        for brand in alc_ref.iterkeys():
+            ''' Every word in the brand must be in the keg name for a match '''
+            matched_words = [word in self.name for word in brand.split()]
+            if all(matched_words):
+                for beer in alc_ref[brand].iterkeys():
+                    ''' Any word in the beer must be in the keg name for a match '''
+                    matched_words = [word in self.name for word in beer.split()]
+                    if any(matched_words):
+                        if self.verbose:
+                            print('Matched keg {} to {} {}.'.format(self.name, brand, beer)),
+                        return alc_ref[brand][beer]
+
+        ''' If we've reached this point there is no match, so return None '''
+        if self.verbose:
+            print('No match for keg {}'.format(self.name))
+
+        return None
+
+
+    def get_ratio(self, alc_ref):
+        ''' Matches the alcohol % and returns the volume of alcohol per USD '''
+        alcohol_pct = self.match(alc_ref)
+        if alcohol_pct is not None:
+            ratio = (alcohol_pct * .1 * self.volume) / self.price
+
+            if self.verbose:
+                print('\tRatio: {}'.format(str(ratio)))
+            self.ratio = ratio
+            return ratio
+        else:
+            return None
 
 
