@@ -2,11 +2,12 @@
 
 #############################################################
 #                                                           #
-# ChooseMyBeer - find the beer that's right for you         #
+# ChooseMyBeer - find the keg that's right for you          #
 # written by Hunter Hammond (huntrar@gmail.com)             #
 #                                                           #
 #############################################################
 
+import argparse
 import heapq
 import sys
 from urlparse import urlparse
@@ -18,7 +19,20 @@ from utils import get_html, is_num, unique
 import lxml.html as lh
 
 
-def get_optimal_keg(num_kegs, page_limit=10000):
+def get_parser():
+    parser = argparse.ArgumentParser(description='find the keg that\'s right for you')
+    parser.add_argument('-f', '--filter', type=str, nargs='*',
+                        help='find kegs matching these filter words')
+    parser.add_argument('-l', '--limit', type=int, nargs='?',
+                        help='limit number of keg pages to crawl (default: 10000)')
+    parser.add_argument('-t', '--top', type=int, nargs='?',
+                        help='number of top kegs to display (default: 3)')
+    parser.add_argument('-u', '--unfilter', type=str, nargs='*',
+                        help='find keys not matching these filter words')
+    return parser
+
+
+def get_optimal_keg(args, num_kegs, page_limit):
     ''' Gets kegs from BevMo and cross references them with Realbeer beers and their alcohol percentages
 
         num_kegs is the number of optimal kegs to return and page_limit is the max number of keg pages to crawl
@@ -72,9 +86,44 @@ def get_optimal_keg(num_kegs, page_limit=10000):
             if beer_id not in crawled_beers:
                 crawled_beers.add(beer_id)
 
+                ''' Create BeerKeg object '''
                 keg = BeerKeg(link, verbose=True)
 
-                ''' Gets the gallons of alcohol per dollar ratio for the keg '''
+                ''' User may wish to preprocess kegs to filter by their descriptions, in which case we call parse()
+                
+                    parse() gives the BeerKeg object its fields, we call it so we can access keg.desc (description)
+                '''
+
+                ''' args['filter'] has words that must be in the description '''
+                if args['filter']:
+                    keg.parse()
+
+                    found = False
+                    for word in args['filter']:
+                        if word in keg.desc:
+                            found = True
+
+                    if not found:
+                        ''' Move onto the next keg and ignore this one '''
+                        continue
+
+                ''' args['unfilter'] has words that must not be in the description '''
+                if args['unfilter']:
+                    keg.parse()
+
+                    found = False
+                    for word in args['unfilter']:
+                        if word in keg.desc:
+                            found = True
+
+                    if found:
+                        ''' Move onto the next keg and ignore this one '''
+                        continue
+
+                ''' Gets the gallons of alcohol per dollar ratio for the keg
+                    
+                    Calls parse() internally only if it was not called prior to this point
+                '''
                 ratio = keg.get_ratio(alc_ref)
 
                 ''' Maintain a sorted list of the current top 3 kegs using heapq (heap queue algorithm)
@@ -108,9 +157,19 @@ def get_optimal_keg(num_kegs, page_limit=10000):
     return sorted(optimal_kegs, key=lambda x: x[0], reverse=True)
 
 
-def run():
-    ''' Get the top 3 optimal kegs, you can also pass an optional page limit argument for testing '''
-    optimal_kegs = get_optimal_keg(num_kegs=3)
+def command_line_runner():
+    parser = get_parser()
+    args = vars(parser.parse_args()) 
+
+    ''' Default is to get top 3 kegs '''
+    if not args['top']:
+        args['top'] = 3
+
+    ''' Default is to crawl up to 10,000 pages (even though there are hardly this many) '''
+    if not args['limit']:
+        args['limit'] = 10000
+
+    optimal_kegs = get_optimal_keg(args, num_kegs=args['top'], page_limit=args['limit'])
 
     ratio = 0
     keg = None
@@ -153,5 +212,5 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    command_line_runner()
 
