@@ -98,6 +98,10 @@ class BeerKeg(object):
         if not self.parsed:
             self.parse()
 
+        ''' If brand is matched we search for the beer with the most words matching '''
+        max_matches = 0
+        chosen_beer = None
+
         ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
 
             alc_ref['first brand letter']['brand']['beer'] to get alcohol %
@@ -106,13 +110,19 @@ class BeerKeg(object):
             ''' Every word in the brand must be in the keg name for a match '''
             matched_words = [word in self.name for word in brand.split()]
             if all(matched_words):
+                ''' Find beer with most words matching, if any '''
+                max_matches = 0
+                chosen_beer = None
                 for beer in alc_ref[brand].iterkeys():
-                    ''' Any word in the beer must be in the keg name for a match '''
                     matched_words = [word in self.name for word in beer.split()]
-                    if any(matched_words):
-                        if self.verbose:
-                            print('Matched keg {} to {} {}.'.format(self.name, brand, beer)),
-                        return alc_ref[brand][beer]
+                    if any(matched_words) and len(matched_words) > max_matches:
+                        max_matches = len(matched_words)
+                        chosen_beer = beer 
+
+                if max_matches > 0:
+                    if self.verbose:
+                        print('Matched keg {} to {} {}.'.format(self.name, brand, chosen_beer)),
+                    return alc_ref[brand][chosen_beer]
 
         ''' If we've reached this point there is no match, so return None '''
         if self.verbose:
