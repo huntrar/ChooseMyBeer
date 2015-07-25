@@ -100,6 +100,7 @@ class BeerKeg(object):
 
         ''' If brand is matched we search for the beer with the most words matching '''
         max_matches = 0
+        num_matches = 0
         chosen_beer = None
 
         ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
@@ -113,12 +114,14 @@ class BeerKeg(object):
             if all(matched_words):
                 ''' Find beer with most words matching, if any '''
                 max_matches = 0
+                num_matches = 0
                 chosen_beer = None
                 for beer in alc_ref[brand].iterkeys():
                     matched_words = [word in self.name for word in beer.split()]
+                    num_matches = len(filter(lambda x: x is True, matched_words))
 
-                    if any(matched_words) and len(filter(lambda x: x is True, matched_words)) > max_matches:
-                        max_matches = len(matched_words)
+                    if any(matched_words) and num_matches > max_matches:
+                        max_matches = num_matches
                         chosen_beer = beer 
 
                 if max_matches > 0:
