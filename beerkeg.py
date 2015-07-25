@@ -102,6 +102,13 @@ class BeerKeg(object):
         max_matches = 0
         num_matches = 0
         chosen_beer = None
+            
+        ''' Brand and beer are split by spaces before checking them for matches '''
+        split_beer = ''
+        split_brand = ''
+
+        ''' List of keywords to ignore when matching beers '''
+        beer_ignore = ['Ale', 'Beer']
 
         ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
 
@@ -109,15 +116,29 @@ class BeerKeg(object):
         '''
         for brand in alc_ref.iterkeys():
             ''' Every word in the brand must be in the keg name for a match '''
-            matched_words = [word in self.name for word in brand.split()]
+            split_brand = brand.split()
+            matched_words = [word in self.name for word in split_brand]
 
             if all(matched_words):
-                ''' Find beer with most words matching, if any '''
+                ''' Find beer with most words matching, if any, minus the words in beer_ignore '''
                 max_matches = 0
                 num_matches = 0
                 chosen_beer = None
+
                 for beer in alc_ref[brand].iterkeys():
-                    matched_words = [word in self.name for word in beer.split()]
+                    split_beer = beer.split()
+                    matched_words = [word in self.name for word in filter(lambda x: x not in beer_ignore, split_beer)]
+
+                    ''' A beer with all words matching will be chosen as the first pick '''
+                    if all(matched_words):
+                        chosen_beer = beer
+                        if self.verbose:
+                            print('Matched keg {} to {} {}.'.format(self.name, brand, chosen_beer)),
+                        return alc_ref[brand][chosen_beer]
+
+                    ''' Otherwise the brand will be subtracted from the keg name and checked for any matches '''
+                    matched_words = [word in self.name for word in \
+                                    filter(lambda x: x not in beer_ignore and x not in split_brand, split_beer)]
                     num_matches = len(filter(lambda x: x is True, matched_words))
 
                     if any(matched_words) and num_matches > max_matches:

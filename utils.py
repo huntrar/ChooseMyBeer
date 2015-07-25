@@ -1,8 +1,8 @@
 import random
-import requests
 import sys
 
 import lxml.html as lh
+import requests
 
 
 USER_AGENTS = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:11.0) Gecko/20100101 Firefox/11.0',

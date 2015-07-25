@@ -5,7 +5,6 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
 
 ## To do
 * Add both ways keyword matching (in and not in) for filtering kegs based on description
-* Improve the matching algorithm for more accurate pairings, rather than choosing the first that meets the specs
 
 ## Author
 * Hunter Hammond (huntrar@gmail.com)
