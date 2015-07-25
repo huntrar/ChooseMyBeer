@@ -109,13 +109,15 @@ class BeerKeg(object):
         for brand in alc_ref.iterkeys():
             ''' Every word in the brand must be in the keg name for a match '''
             matched_words = [word in self.name for word in brand.split()]
+
             if all(matched_words):
                 ''' Find beer with most words matching, if any '''
                 max_matches = 0
                 chosen_beer = None
                 for beer in alc_ref[brand].iterkeys():
                     matched_words = [word in self.name for word in beer.split()]
-                    if any(matched_words) and len(matched_words) > max_matches:
+
+                    if any(matched_words) and len(filter(lambda x: x is True, matched_words)) > max_matches:
                         max_matches = len(matched_words)
                         chosen_beer = beer 
 
