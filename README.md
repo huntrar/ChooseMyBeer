@@ -16,13 +16,13 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
     optional arguments:
       -h, --help            show this help message and exit
       -f [FILTER [FILTER ...]], --filter [FILTER [FILTER ...]]
-                            find kegs matching these filter words
+                            find kegs with descriptions matching these keywords
       -l [LIMIT], --limit [LIMIT]
                             limit number of keg pages to crawl (default: 10000)
       -t [TOP], --top [TOP]
                             number of top kegs to display (default: 3)
       -u [UNFILTER [UNFILTER ...]], --unfilter [UNFILTER [UNFILTER ...]]
-                            find keys not matching these filter words
+                            find kegs with descriptions not matching these keywords
 
 ## Author
 * Hunter Hammond (huntrar@gmail.com)

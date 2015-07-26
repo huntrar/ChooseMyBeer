@@ -22,13 +22,13 @@ import lxml.html as lh
 def get_parser():
     parser = argparse.ArgumentParser(description='find the keg that\'s right for you')
     parser.add_argument('-f', '--filter', type=str, nargs='*',
-                        help='find kegs matching these filter words')
+                        help='find kegs with descriptions matching these keywords')
     parser.add_argument('-l', '--limit', type=int, nargs='?',
                         help='limit number of keg pages to crawl (default: 10000)')
     parser.add_argument('-t', '--top', type=int, nargs='?',
                         help='number of top kegs to display (default: 3)')
     parser.add_argument('-u', '--unfilter', type=str, nargs='*',
-                        help='find keys not matching these filter words')
+                        help='find kegs with descriptions not matching these keywords')
     return parser
 
 
