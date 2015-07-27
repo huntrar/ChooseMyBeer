@@ -116,11 +116,15 @@ def get_optimal_keg(args, num_kegs, page_limit):
                         ''' Move onto the next keg and ignore this one '''
                         continue
 
+                ''' Print how many kegs have been crawled '''
+                print('Keg {}'.format(len(crawled_beers)))
+
                 ''' Gets the gallons of alcohol per dollar ratio for the keg
                     
                     Calls parse() internally only if it was not called prior to this point
                 '''
                 ratio = keg.get_ratio()
+                print('')
 
                 ''' Maintain a sorted list of the current top 3 kegs using heapq (heap queue algorithm)
                 
