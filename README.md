@@ -8,13 +8,15 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
 * `pip install requests lxml`
 
 ## Usage
-    usage: choosemybeer.py [-h] [-f [FILTER [FILTER ...]]] [-l [LIMIT]] [-t [TOP]]
-                           [-u [UNFILTER [UNFILTER ...]]]
+    usage: choosemybeer.py [-h] [-a [ATTEMPTS]] [-f [FILTER [FILTER ...]]]
+                           [-l [LIMIT]] [-t [TOP]] [-u [UNFILTER [UNFILTER ...]]]
     
     find the keg that's right for you
     
     optional arguments:
       -h, --help            show this help message and exit
+      -a [ATTEMPTS], --attempts [ATTEMPTS]
+                            number of attempts to resolve each ABV (default: 5)
       -f [FILTER [FILTER ...]], --filter [FILTER [FILTER ...]]
                             find kegs with descriptions matching these keywords
       -l [LIMIT], --limit [LIMIT]
@@ -22,7 +24,13 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
       -t [TOP], --top [TOP]
                             number of top kegs to display (default: 3)
       -u [UNFILTER [UNFILTER ...]], --unfilter [UNFILTER [UNFILTER ...]]
-                            find kegs with descriptions not matching these keywords
+                            find kegs with descriptions not matching these
+                            keywords
+
+
+
+    usage: choosemybeer.py [-h] [-f [FILTER [FILTER ...]]] [-l [LIMIT]] [-t [TOP]]
+                           [-u [UNFILTER [UNFILTER ...]]]
 
 ## Author
 * Hunter Hammond (huntrar@gmail.com)
