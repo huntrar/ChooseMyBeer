@@ -1,8 +1,8 @@
 
+import re
 import webbrowser
 
-from alc_reference import get_alc_reference
-from utils import get_html, is_num, unique
+from utils import get_text, get_html, is_num, unique
 
 
 
@@ -88,78 +88,50 @@ class BeerKeg(object):
             self.desc = ''
 
 
-    def match(self, alc_ref):
-        ''' Attempts to match keg to a beer in the alcohol reference
-        
-            Returns None or the alcohol % found
-        '''
-        matched_words = []
+    def get_abv(self):
+        ''' Attempts to find alcohol percentage using google first result '''
+        abv = ''
 
+        ''' A ceiling for ABV content for validation
+        
+            We can assume BevMo does not offer kegs with this high of an alcohol content
+        '''
+        max_abv = 30.0
+        
         if not self.parsed:
             self.parse()
 
-        ''' If brand is matched we search for the beer with the most words matching '''
-        max_matches = 0
-        num_matches = 0
-        chosen_beer = None
-            
-        ''' Brand and beer are split by spaces before checking them for matches '''
-        split_beer = ''
-        split_brand = ''
+        search_url = 'https://www.google.com/search?q=' + '+'.join(self.name.split()) + '+alcohol+content'
+        search_links = get_html(search_url).xpath('//a/@href')
+        first_link = search_links[search_links.index('#'):][1]
 
-        ''' List of keywords to ignore when matching beers '''
-        beer_ignore = ['Ale', 'Beer']
+        ''' Search the first link on google for the alcohol content using a regex '''
+        search_text = ''.join(get_text(get_html(first_link)))
 
-        ''' alc_ref format is: {'Brewery/Brand' : {'Beer' : 'Alcohol %'}}
+        ''' Retrieves partial string containing the words ABV and a % '''
+        abv = re.search('(?<=[Aa][Bb][Vv])[^\d]*(\d+[.]?\d*)(?=%)|(?<=%)[^\d]*(\d+[.]?\d*)[^\d]*(?=[Aa][Bb][Cc])', search_text)
+        if abv:
+            abv = abv.group()
 
-            alc_ref['first brand letter']['brand']['beer'] to get alcohol %
-        '''
-        for brand in alc_ref.iterkeys():
-            ''' Every word in the brand must be in the keg name for a match '''
-            split_brand = brand.split()
-            matched_words = [word in self.name for word in split_brand]
+            ''' Filters for a number with or without a decimal pt '''
+            abv = float(re.search('(\d+[.]?\d*)', abv).group())
 
-            if all(matched_words):
-                ''' Find beer with most words matching, if any, minus the words in beer_ignore '''
-                max_matches = 0
-                num_matches = 0
-                chosen_beer = None
+            if abv < max_abv:
+                if self.verbose:
+                    print('ABV for {} is {}'.format(self.name, abv))
 
-                for beer in alc_ref[brand].iterkeys():
-                    split_beer = beer.split()
-                    matched_words = [word in self.name for word in filter(lambda x: x not in beer_ignore, split_beer)]
-
-                    ''' A beer with all words matching will be chosen as the first pick '''
-                    if all(matched_words):
-                        chosen_beer = beer
-                        if self.verbose:
-                            print('Matched keg {} to {} {}.'.format(self.name, brand, chosen_beer)),
-                        return alc_ref[brand][chosen_beer]
-
-                    ''' Otherwise the brand will be subtracted from the keg name and checked for any matches '''
-                    matched_words = [word in self.name for word in \
-                                    filter(lambda x: x not in beer_ignore and x not in split_brand, split_beer)]
-                    num_matches = len(filter(lambda x: x is True, matched_words))
-
-                    if any(matched_words) and num_matches > max_matches:
-                        max_matches = num_matches
-                        chosen_beer = beer 
-
-                if max_matches > 0:
-                    if self.verbose:
-                        print('Matched keg {} to {} {}.'.format(self.name, brand, chosen_beer)),
-                    return alc_ref[brand][chosen_beer]
+                return abv
 
         ''' If we've reached this point there is no match, so return None '''
         if self.verbose:
-            print('No match for keg {}'.format(self.name))
+            print('ABV not found for {}'.format(self.name))
 
         return None
 
 
-    def get_ratio(self, alc_ref):
-        ''' Matches the alcohol % and returns the volume of alcohol per USD '''
-        alcohol_pct = self.match(alc_ref)
+    def get_ratio(self):
+        ''' Returns the volume of alcohol per USD '''
+        alcohol_pct = self.get_abv()
         if alcohol_pct is not None:
             ratio = (alcohol_pct * .1 * self.volume) / self.price
 

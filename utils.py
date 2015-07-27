@@ -1,4 +1,5 @@
 import random
+import string
 import sys
 
 import lxml.html as lh
@@ -24,7 +25,18 @@ def get_html(url):
         return None
 
 
+def filter_printable(line):
+    return filter(lambda x: x in string.printable, line)
+
+
+def get_text(html):
+    text = html.xpath('//*[not(self::script) and not(self::style)]//text()')
+    return map(filter_printable, text)
+
+
 def is_num(num):
+
+
     ''' Characters to ignore when checking if value is a number '''
     ignore = ['-', '<', '>']
     try:

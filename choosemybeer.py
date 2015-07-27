@@ -12,7 +12,6 @@ import heapq
 import sys
 from urlparse import urlparse
 
-from alc_reference import get_alc_reference
 from beerkeg import BeerKeg
 from utils import get_html, is_num, unique
 
@@ -33,11 +32,11 @@ def get_parser():
 
 
 def get_optimal_keg(args, num_kegs, page_limit):
-    ''' Gets kegs from BevMo and cross references them with Realbeer beers and their alcohol percentages
+    ''' Gets kegs from BevMo's website and find the most optimal ratio of alcohol volume to dollar
 
         num_kegs is the number of optimal kegs to return and page_limit is the max number of keg pages to crawl
 
-        Returns the kegs with the highest ratio of gallons of alcohol per dollar
+        The number of kegs returned is specified using the -t, --top flag
     '''
 
     ''' The first url to crawl and its base url '''
@@ -67,9 +66,6 @@ def get_optimal_keg(args, num_kegs, page_limit):
 
     ''' List to hold top beer kegs, the size of optimal_kegs is limited by the num_kegs argument '''
     optimal_kegs = []
-
-    ''' The alcohol reference dictionary, where the alcohol percentages reside '''
-    alc_ref = get_alc_reference()
 
     keg = None
     while len(page_links) > 0 and len(crawled_beers) < page_limit:
@@ -124,7 +120,7 @@ def get_optimal_keg(args, num_kegs, page_limit):
                     
                     Calls parse() internally only if it was not called prior to this point
                 '''
-                ratio = keg.get_ratio(alc_ref)
+                ratio = keg.get_ratio()
 
                 ''' Maintain a sorted list of the current top 3 kegs using heapq (heap queue algorithm)
                 
