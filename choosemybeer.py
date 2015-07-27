@@ -20,6 +20,8 @@ import lxml.html as lh
 
 def get_parser():
     parser = argparse.ArgumentParser(description='find the keg that\'s right for you')
+    parser.add_argument('-a', '--attempts', type=int, nargs='?',
+                        help='number of attempts to resolve each ABV (default: 5)')
     parser.add_argument('-f', '--filter', type=str, nargs='*',
                         help='find kegs with descriptions matching these keywords')
     parser.add_argument('-l', '--limit', type=int, nargs='?',
@@ -38,6 +40,12 @@ def get_optimal_keg(args, num_kegs, page_limit):
 
         The number of kegs returned is specified using the -t, --top flag
     '''
+
+    ''' Number of attempts to find ABV (default: 5) '''
+    if args['attempts']:
+        num_attempts = args['attempts']
+    else:
+        num_attempts = 5
 
     ''' The first url to crawl and its base url '''
     seed_url = "http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer"
@@ -83,7 +91,7 @@ def get_optimal_keg(args, num_kegs, page_limit):
                 crawled_beers.add(beer_id)
 
                 ''' Create BeerKeg object '''
-                keg = BeerKeg(link, verbose=True)
+                keg = BeerKeg(link, num_attempts, verbose=True)
 
                 ''' User may wish to preprocess kegs to filter by their descriptions, in which case we call parse()
                 

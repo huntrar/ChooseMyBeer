@@ -16,7 +16,7 @@ class BeerKeg(object):
         
         get_ratio() calls match() and returns the ratio of gallons of alcohol per dollar
     '''
-    def __init__(self, url, verbose=False):
+    def __init__(self, url, num_attempts, verbose=False):
         ''' url must be a string containing the url for a single BevMo keg '''
         self.url = url
 
@@ -28,6 +28,9 @@ class BeerKeg(object):
 
         ''' The ratio of gallons of alcohol per dollar '''
         self.ratio = None
+
+        ''' Number of attempts to find ABV '''
+        self.num_attempts = num_attempts
 
 
     def open(self):
@@ -93,6 +96,10 @@ class BeerKeg(object):
         ''' Attempts to find alcohol percentage using bing first result '''
         abv = ''
 
+        ''' Once an ABV is found we attempt to verify it by checking the next link '''
+        found_abv = ''
+
+
         ''' A ceiling for ABV content for validation
         
             We can assume BevMo does not offer kegs with this high of an alcohol content
@@ -103,19 +110,12 @@ class BeerKeg(object):
             self.parse()
 
         search_url = 'https://www.bing.com/search?q=' + '+'.join(self.name.split()) + '+alcohol+content'
-        #search_links = filter(lambda x: 'bing.com' not in x, get_html(search_url).xpath('//a/@href'))
         search_links = get_html(search_url).xpath('//a/@href')
 
-        '''
-        print 'search links is '
-        for link in search_links:
-            print link
-        print('')
-        '''
-        results = filter(lambda x: x != '#', search_links[search_links.index('javascript:'):][1:])
+        results = filter(lambda x: x != '#' and 'site:' not in x, search_links[search_links.index('javascript:'):][1:])
 
-        ''' Search up to num_searches of the first results on bing for the alcohol content using a regex '''
-        num_searches = 3
+        ''' Search up to num_attempts of the first results on bing for the alcohol content using a regex '''
+        num_attempts = self.num_attempts
 
         ''' Filter links with same domain to improve chances of matching '''
         searched_domains = set()
@@ -125,7 +125,7 @@ class BeerKeg(object):
         r_it = 0
         result_link = ''
 
-        while len(top_results) < num_searches:
+        while len(top_results) < num_attempts:
             result_link = results[r_it]
             domain = '{url.netloc}'.format(url=urlparse(result_link))
             if '.' in domain:
@@ -141,7 +141,10 @@ class BeerKeg(object):
                 r_it += 1
                 searched_domains.add(domain)
 
-        for i in xrange(num_searches):
+        for i in xrange(num_attempts):
+            if self.verbose:
+                print('Searching {}'.format(top_results[i]))
+
             try:
                 search_text = ''.join(get_text(get_html(top_results[i])))
             except Exception:
@@ -156,13 +159,31 @@ class BeerKeg(object):
                 abv = float(re.search('(\d+[.]?\d*)', abv).group())
 
                 if abv < max_abv:
-                    if self.verbose:
-                        print('ABV for {} is {}'.format(self.name, abv))
+                    ''' If abv is under the half the ceiling limit assume it was correct and return it '''
+                    if abv < max_abv / 2:
+                        if self.verbose:
+                            print('ABV for {} is {}'.format(self.name, abv))
+                
+                        return abv
 
-                    return abv
+                    ''' Replace the new found abv only if the next link has a lower found abv '''
+                    if found_abv:
+                        if abv < found_abv:
+                            if self.verbose:
+                                print('ABV for {} is {}'.format(self.name, abv))
+                    
+                            return abv
+                        else:
+                            if self.verbose:
+                                print('ABV for {} is {}'.format(self.name, found_abv))
+                    
+                            return found_abv
+                    found_abv = abv
             else:
-                if self.verbose:
-                    print('No ABV found on {}'.format(top_results[i]))
+                if found_abv:
+                    if self.verbose:
+                        print('ABV for {} is {}'.format(self.name, found_abv))
+                    return found_abv
 
         ''' No ABV was found by this point '''
         if self.verbose:
@@ -175,7 +196,10 @@ class BeerKeg(object):
         ''' Returns the volume of alcohol per USD '''
         alcohol_pct = self.get_abv()
         if alcohol_pct is not None:
-            ratio = (alcohol_pct * .1 * self.volume) / self.price
+            try:
+                ratio = (alcohol_pct * .1 * self.volume) / self.price
+            except Exception:
+                return None
 
             if self.verbose:
                 print('\tRatio: {}'.format(str(ratio)))
