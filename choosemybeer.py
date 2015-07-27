@@ -72,6 +72,9 @@ def get_optimal_keg(args, num_kegs, page_limit):
     ''' To keep track of already crawled beers '''
     crawled_beers = set()
 
+    ''' List for filter and unfilter matches '''
+    matched = []
+
     ''' List to hold top beer kegs, the size of optimal_kegs is limited by the num_kegs argument '''
     optimal_kegs = []
 
@@ -102,12 +105,9 @@ def get_optimal_keg(args, num_kegs, page_limit):
                 if args['filter']:
                     keg.parse()
 
-                    found = False
-                    for word in args['filter']:
-                        if word in keg.desc:
-                            found = True
-
-                    if not found:
+                    matched = [word in keg.desc for word in args['filter']]
+                    
+                    if not all(matched):
                         ''' Move onto the next keg and ignore this one '''
                         continue
 
@@ -115,12 +115,9 @@ def get_optimal_keg(args, num_kegs, page_limit):
                 if args['unfilter']:
                     keg.parse()
 
-                    found = False
-                    for word in args['unfilter']:
-                        if word in keg.desc:
-                            found = True
+                    matched = [word in keg.desc for word in args['filter']]
 
-                    if found:
+                    if any(matched):
                         ''' Move onto the next keg and ignore this one '''
                         continue
 

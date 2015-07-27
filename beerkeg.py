@@ -158,6 +158,17 @@ class BeerKeg(object):
                 ''' Filters for a number with or without a decimal pt '''
                 abv = float(re.search('(\d+[.]?\d*)', abv).group())
 
+                ''' If ABV is 0.0, return ABV if found
+                
+                    Otherwise move onto the next link
+                '''
+                if abv == 0.0:
+                    if found_abv:
+                        if self.verbose:
+                            print('ABV for {} is {}'.format(self.name, abv))
+                    else:
+                        continue
+
                 if abv < max_abv:
                     ''' If abv is under the half the ceiling limit assume it was correct and return it '''
                     if abv < max_abv / 2:
