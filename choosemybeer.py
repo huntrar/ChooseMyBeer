@@ -9,7 +9,6 @@
 
 import argparse
 import heapq
-import sys
 from urlparse import urlparse
 
 from beerkeg import BeerKeg
@@ -33,46 +32,37 @@ def get_parser():
     return parser
 
 
-def get_optimal_keg(args, num_kegs, page_limit):
-    ''' Gets kegs from BevMo's website and find the most optimal ratio of alcohol volume to dollar
-
-        num_kegs is the number of optimal kegs to return and page_limit is the max number of keg pages to crawl
-
-        The number of kegs returned is specified using the -t, --top flag
-    '''
-
-    ''' Number of attempts to find ABV (default: 5) '''
-    if args['attempts']:
-        num_attempts = args['attempts']
-    else:
-        num_attempts = 5
+def get_optimal_keg(args):
+    ''' Gets kegs from bevmo.com and finds the kegs with the optimal gallons of alcohol per USD '''
+    num_kegs = args['top']
+    page_limit = args['limit']
+    num_attempts = args['attempts']
 
     ''' The first url to crawl and its base url '''
     seed_url = "http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer"
     base_url = '{url.scheme}://{url.netloc}'.format(url=urlparse(seed_url))
 
-    ''' Initialize unique page links taken from the seed url
-    
-        The base url is then appended to links as they have no domain
-    '''
-    init_page_links = []
+    ''' Get initial unique page links from the seed url and append base_url to them '''
 
     '''     For info on XPaths, see:
 
             http://www.w3schools.com/xpath/xpath_syntax.asp
     '''
+    init_page_links = []
     init_page_links[:] = unique(get_html(seed_url).xpath('//div[@class="ProductListPaging"]/a/@href'))
+
+    ''' Lists for holding links to pages of beer kegs '''
     page_links = [seed_url] + map(lambda x: base_url + x, init_page_links)
     new_page_links = []
 
     ''' Lists for holding links to individual beer kegs '''
-    new_beer_links = []
     beer_links = []
+    new_beer_links = []
     
-    ''' To keep track of already crawled beers '''
+    ''' To keep track of already crawled beer kegs '''
     crawled_beers = set()
 
-    ''' List for filter and unfilter matches '''
+    ''' List for matching --filter and --unfilter keyword arguments to keg descriptions '''
     matched = []
 
     ''' List to hold top beer kegs, the size of optimal_kegs is limited by the num_kegs argument '''
@@ -87,18 +77,20 @@ def get_optimal_keg(args, num_kegs, page_limit):
         new_beer_links[:] = unique(get_html(page_link).xpath('//a[@class="ProductListItemLink"]/@href'))
         beer_links += map(lambda x: base_url + x, new_beer_links)
 
-        ''' Crawl the beer keg links and get the gallons of alcohol/dollar ratio '''
+        ''' Crawl the beer keg links and get the gallons of alcohol/USD ratio '''
         for link in beer_links:
+            ''' Cache the BevMo beer id's to prevent duplicates '''
             beer_id = link.split('/')[-1]
+
             if beer_id not in crawled_beers:
                 crawled_beers.add(beer_id)
 
                 ''' Create BeerKeg object '''
                 keg = BeerKeg(link, num_attempts, verbose=True)
 
-                ''' User may wish to preprocess kegs to filter by their descriptions, in which case we call parse()
+                ''' We call keg.parse() so we may filter kegs by their descriptions
                 
-                    parse() gives the BeerKeg object its fields, we call it so we can access keg.desc (description)
+                    Calling keg.parse() allows us to access keg.desc
                 '''
 
                 ''' args['filter'] has words that must be in the description '''
@@ -106,7 +98,8 @@ def get_optimal_keg(args, num_kegs, page_limit):
                     keg.parse()
 
                     matched = [word in keg.desc for word in args['filter']]
-                    
+
+                    ''' All keywords must be present for a match '''
                     if not all(matched):
                         ''' Move onto the next keg and ignore this one '''
                         continue
@@ -117,6 +110,7 @@ def get_optimal_keg(args, num_kegs, page_limit):
 
                     matched = [word in keg.desc for word in args['filter']]
 
+                    ''' Any keyword must be present to nullify a match '''
                     if any(matched):
                         ''' Move onto the next keg and ignore this one '''
                         continue
@@ -124,11 +118,9 @@ def get_optimal_keg(args, num_kegs, page_limit):
                 ''' Print how many kegs have been crawled '''
                 print('Keg {}'.format(len(crawled_beers)))
 
-                ''' Gets the gallons of alcohol per dollar ratio for the keg
-                    
-                    Calls parse() internally only if it was not called prior to this point
-                '''
+                ''' Gets the gallons of alcohol per USD for the keg '''
                 ratio = keg.get_ratio()
+
                 print('')
 
                 ''' Maintain a sorted list of the current top 3 kegs using heapq (heap queue algorithm)
@@ -166,20 +158,25 @@ def command_line_runner():
     parser = get_parser()
     args = vars(parser.parse_args()) 
 
-    ''' Default is to get top 3 kegs '''
+    ''' Number of top kegs to display (default: 3) '''
     if not args['top']:
         args['top'] = 3
 
-    ''' Default is to crawl up to 10,000 pages (even though there are hardly this many) '''
+    ''' Number of keg pages to crawl (default: 10000) '''
     if not args['limit']:
         args['limit'] = 10000
 
-    optimal_kegs = get_optimal_keg(args, num_kegs=args['top'], page_limit=args['limit'])
+    ''' Number of attempts to resolve each ABV (default: 5) '''
+    if not args['attempts']:
+        args['attempts'] = 5
+
+    optimal_kegs = get_optimal_keg(args)
 
     ratio = 0
     keg = None
 
     try:
+        ''' Print a menu for the user to choose from the top kegs '''
         printing = True
         optimal_keg = None
         chosen_keg = -1
@@ -212,7 +209,7 @@ def command_line_runner():
                 optimal_keg.open()
 
     except KeyboardInterrupt:
-        sys.exit()
+        pass
 
 
 
