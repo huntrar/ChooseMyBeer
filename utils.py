@@ -35,8 +35,6 @@ def get_text(html):
 
 
 def is_num(num):
-
-
     ''' Characters to ignore when checking if value is a number '''
     ignore = ['-', '<', '>']
     try:
