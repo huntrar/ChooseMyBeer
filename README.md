@@ -3,6 +3,21 @@
 ## find the keg that's right for you
 ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer) with the highest alcohol volume per USD. The alcohol percentage for each keg is found by using the top result from bing. The user is given a menu to choose from the top kegs, accompanied by their volume in gallons, price, availability, and description. Choosing a keg will open the relevant BevMo page in your browser.
 
+## Results
+    Results of running ChooseMyBeer with default options as of Jul/27/2015
+
+    0. Tied House Cascade Amber Ale Ratio: 0.0791545499681
+    Available: 3    Volume: 15.5 Gal.       Price: $140.99
+    Cascade hops, select malts and loving care by our Brewmaster give this beer a smooth, creamy balance, and brilliant clarity.
+    
+    1. Pabst Blue Ribbon    Ratio: 0.0734773477348
+    Available: 3    Volume: 15.5 Gal.       Price: $99.99
+    Pabst Blue Ribbon is a premium lager brew crafted with a hefty infusion of 6-row barley in its ingredient package, a carefully balanced carbohydrate profile from corn syrup, and Pacific domestic hops.
+    
+    2. Grand Teton Bitch Creek ESB  Ratio: 0.0664323675639
+    Available: 4    Volume: 15.5 Gal.       Price: $174.99
+    Bitch Creek perfectly balances big malt sweetness and robust hopflavor for full-bodied mahogany ale. Like the stream for which is named, our Bitch Creek ESB is full of character..not for the timid.
+
 ## Installation
 * `git clone https://github.com/huntrar/ChooseMyBeer`
 * `pip install requests lxml`
@@ -34,19 +49,4 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
 
 ## Author
 * Hunter Hammond (huntrar@gmail.com)
-
-## Results
-    Results of running ChooseMyBeer with default options as of Jul/27/2015
-
-    0. Tied House Cascade Amber Ale Ratio: 0.0791545499681
-    Available: 3    Volume: 15.5 Gal.       Price: $140.99
-    Cascade hops, select malts and loving care by our Brewmaster give this beer a smooth, creamy balance, and brilliant clarity.
-    
-    1. Pabst Blue Ribbon    Ratio: 0.0734773477348
-    Available: 3    Volume: 15.5 Gal.       Price: $99.99
-    Pabst Blue Ribbon is a premium lager brew crafted with a hefty infusion of 6-row barley in its ingredient package, a carefully balanced carbohydrate profile from corn syrup, and Pacific domestic hops.
-    
-    2. Grand Teton Bitch Creek ESB  Ratio: 0.0664323675639
-    Available: 4    Volume: 15.5 Gal.       Price: $174.99
-    Bitch Creek perfectly balances big malt sweetness and robust hopflavor for full-bodied mahogany ale. Like the stream for which is named, our Bitch Creek ESB is full of character..not for the timid.
 
