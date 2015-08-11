@@ -24,7 +24,9 @@ def get_parser():
     parser.add_argument('-f', '--filter', type=str, nargs='*',
                         help='find kegs with descriptions matching these keywords')
     parser.add_argument('-l', '--limit', type=int, nargs='?',
-                        help='limit number of keg pages to crawl (default: 10000)')
+                        help='limit number of kegs to crawl (default: 10000)')
+    parser.add_argument('-p', '--price', type=float, nargs='?',
+                        help='limit the price range')
     parser.add_argument('-t', '--top', type=int, nargs='?',
                         help='number of top kegs to display (default: 3)')
     parser.add_argument('-u', '--unfilter', type=str, nargs='*',
@@ -35,8 +37,11 @@ def get_parser():
 def get_optimal_keg(args):
     ''' Gets kegs from bevmo.com and finds the kegs with the optimal gallons of alcohol per USD '''
     num_kegs = args['top']
-    page_limit = args['limit']
+    beer_limit = args['limit']
     num_attempts = args['attempts']
+    max_price = args['price']
+    desc_filter = args['filter']
+    desc_unfilter = args['unfilter']
 
     ''' The first url to crawl and its base url '''
     seed_url = "http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer"
@@ -69,7 +74,7 @@ def get_optimal_keg(args):
     optimal_kegs = []
 
     keg = None
-    while len(page_links) > 0 and len(crawled_beers) < page_limit:
+    while len(page_links) > 0 and len(crawled_beers) < beer_limit:
         ''' Links are removed as they are crawled '''
         page_link = page_links.pop(0)
 
@@ -79,42 +84,58 @@ def get_optimal_keg(args):
 
         ''' Crawl the beer keg links and get the gallons of alcohol/USD ratio '''
         for link in beer_links:
+            ''' Break if the number of crawled beers exceeds the limit '''
+            if len(crawled_beers) >= beer_limit:
+                break
+
             ''' Cache the BevMo beer id's to prevent duplicates '''
             beer_id = link.split('/')[-1]
 
             if beer_id not in crawled_beers:
-                crawled_beers.add(beer_id)
-
                 ''' Create BeerKeg object '''
                 keg = BeerKeg(link, num_attempts, verbose=True)
 
                 ''' We call keg.parse() so we may filter kegs by their descriptions
                 
-                    Calling keg.parse() allows us to access keg.desc
+                    Calling keg.parse() allows us to access fields like keg.descand keg.price
+
+                    keg.parse() will only parse once per keg object so multiple calls to parse are fine
                 '''
 
-                ''' args['filter'] has words that must be in the description '''
-                if args['filter']:
+                ''' Check if price is within range if one was given '''
+                if max_price:
                     keg.parse()
 
-                    matched = [word in keg.desc for word in args['filter']]
+                    if keg.price > max_price:
+                        ''' Move onto the next keg and ignore this one '''
+                        continue
+
+                ''' args['filter'] has words that must be in the description '''
+                ''' desc_filter has words that must be in the description '''
+                if desc_filter:
+                    keg.parse()
+
+                    matched = [word in keg.desc for word in desc_filter]
 
                     ''' All keywords must be present for a match '''
                     if not all(matched):
                         ''' Move onto the next keg and ignore this one '''
                         continue
 
-                ''' args['unfilter'] has words that must not be in the description '''
-                if args['unfilter']:
+                ''' desc_unfilter has words that must not be in the description '''
+                if desc_unfilter:
                     keg.parse()
 
-                    matched = [word in keg.desc for word in args['filter']]
+                    matched = [word in keg.desc for word in desc_unfilter]
 
                     ''' Any keyword must be present to nullify a match '''
                     if any(matched):
                         ''' Move onto the next keg and ignore this one '''
                         continue
 
+                ''' Add current beer to crawled beers '''
+                crawled_beers.add(beer_id)
+     
                 ''' Print how many kegs have been crawled '''
                 print('Keg {}'.format(len(crawled_beers)))
 
