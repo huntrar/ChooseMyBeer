@@ -24,10 +24,11 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
 
 ## Usage
     usage: choosemybeer.py [-h] [-a [ATTEMPTS]] [-f [FILTER [FILTER ...]]]
-                           [-l [LIMIT]] [-t [TOP]] [-u [UNFILTER [UNFILTER ...]]]
-    
+                           [-l [LIMIT]] [-p [PRICE]] [-t [TOP]]
+                           [-u [UNFILTER [UNFILTER ...]]]
+
     find the keg that's right for you
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -a [ATTEMPTS], --attempts [ATTEMPTS]
@@ -35,17 +36,14 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
       -f [FILTER [FILTER ...]], --filter [FILTER [FILTER ...]]
                             find kegs with descriptions matching these keywords
       -l [LIMIT], --limit [LIMIT]
-                            limit number of keg pages to crawl (default: 10000)
+                            limit number of kegs to crawl (default: 10000)
+      -p [PRICE], --price [PRICE]
+                            limit the price range
       -t [TOP], --top [TOP]
                             number of top kegs to display (default: 3)
       -u [UNFILTER [UNFILTER ...]], --unfilter [UNFILTER [UNFILTER ...]]
                             find kegs with descriptions not matching these
                             keywords
-
-
-
-    usage: choosemybeer.py [-h] [-f [FILTER [FILTER ...]]] [-l [LIMIT]] [-t [TOP]]
-                           [-u [UNFILTER [UNFILTER ...]]]
 
 ## Author
 * Hunter Hammond (huntrar@gmail.com)
