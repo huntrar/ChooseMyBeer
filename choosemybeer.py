@@ -34,7 +34,7 @@ def get_parser():
     return parser
 
 
-def get_optimal_keg(args):
+def get_optimal_kegs(args):
     ''' Gets kegs from bevmo.com and finds the kegs with the optimal gallons of alcohol per USD '''
     num_kegs = args['top']
     beer_limit = args['limit']
@@ -55,6 +55,10 @@ def get_optimal_keg(args):
     '''
     init_page_links = []
     init_page_links[:] = unique(get_html(seed_url).xpath('//div[@class="ProductListPaging"]/a/@href'))
+
+    if not init_page_links:
+        print('Failed to retrieve the initial keg page links!')
+        return None
 
     ''' Lists for holding links to pages of beer kegs '''
     page_links = [seed_url] + map(lambda x: base_url + x, init_page_links)
@@ -191,7 +195,7 @@ def command_line_runner():
     if not args['attempts']:
         args['attempts'] = 10 
 
-    optimal_kegs = get_optimal_keg(args)
+    optimal_kegs = get_optimal_kegs(args)
 
     ratio = 0
     keg = None
@@ -203,31 +207,34 @@ def command_line_runner():
         chosen_keg = -1
         quit = 0
 
-        ''' Loop until user decides to quit '''
-        while printing and chosen_keg != quit:
-            ''' keg_tuple is ratio followed by BeerKeg object '''
-            for i, keg_tuple in enumerate(optimal_kegs):
-                ratio = keg_tuple[0]
-                keg = keg_tuple[1]
+        if not optimal_kegs:
+            print('An error occurred during processing. Check your internet connection.')
+        else:
+            ''' Loop until user decides to quit '''
+            while printing and chosen_keg != quit:
+                ''' keg_tuple is ratio followed by BeerKeg object '''
+                for i, keg_tuple in enumerate(optimal_kegs):
+                    ratio = keg_tuple[0]
+                    keg = keg_tuple[1]
 
-                print('\n{}. {}\tRatio: {}'.format(i, keg.name, ratio))
-                print('Available: {}\tVolume: {} Gal.\tPrice: ${}\n{}'.format(keg.num_avail, keg.volume, keg.price, keg.desc))
+                    print('\n{}. {}\tRatio: {}'.format(i, keg.name, ratio))
+                    print('Available: {}\tVolume: {} Gal.\tPrice: ${}\n{}'.format(keg.num_avail, keg.volume, keg.price, keg.desc))
 
-                ''' Make quit always be the last menu option '''
-                quit = i+1
-            print('\n{}. Quit'.format(quit))
+                    ''' Make quit always be the last menu option '''
+                    quit = i+1
+                print('\n{}. Quit'.format(quit))
 
-            try:
-                chosen_keg = int(raw_input('Choose a keg: '))
-            except Exception:
-                continue
+                try:
+                    chosen_keg = int(raw_input('Choose a keg: '))
+                except Exception:
+                    continue
 
-            ''' If chosen keg is within the optimal kegs range (quit is one outside), then open the link '''
-            if chosen_keg >= 0 and chosen_keg < len(optimal_kegs):
-                optimal_keg = optimal_kegs[chosen_keg][1]
+                ''' If chosen keg is within the optimal kegs range (quit is one outside), then open the link '''
+                if chosen_keg >= 0 and chosen_keg < len(optimal_kegs):
+                    optimal_keg = optimal_kegs[chosen_keg][1]
 
-                ''' Opens the link to the keg in a browser using webbrowser '''
-                optimal_keg.open()
+                    ''' Opens the link to the keg in a browser using webbrowser '''
+                    optimal_keg.open()
 
     except KeyboardInterrupt:
         pass
