@@ -20,7 +20,7 @@ import lxml.html as lh
 def get_parser():
     parser = argparse.ArgumentParser(description='find the keg that\'s right for you')
     parser.add_argument('-a', '--attempts', type=int, nargs='?',
-                        help='number of attempts to resolve each ABV (default: 5)')
+                        help='number of attempts to resolve each ABV (default: 10)')
     parser.add_argument('-f', '--filter', type=str, nargs='*',
                         help='find kegs with descriptions matching these keywords')
     parser.add_argument('-l', '--limit', type=int, nargs='?',
@@ -187,9 +187,9 @@ def command_line_runner():
     if not args['limit']:
         args['limit'] = 10000
 
-    ''' Number of attempts to resolve each ABV (default: 5) '''
+    ''' Number of attempts to resolve each ABV (default: 10) '''
     if not args['attempts']:
-        args['attempts'] = 5
+        args['attempts'] = 10 
 
     optimal_kegs = get_optimal_keg(args)
 
