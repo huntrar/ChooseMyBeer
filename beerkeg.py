@@ -113,7 +113,7 @@ class BeerKeg(object):
         r_it = 0
         result_link = ''
 
-        while len(top_results) < num_attempts:
+        while len(top_results) < num_attempts and r_it < len(results):
             result_link = results[r_it]
             domain = '{url.netloc}'.format(url=urlparse(result_link))
             if '.' in domain:
