@@ -130,7 +130,7 @@ class BeerKeg(object):
                 r_it += 1
                 searched_domains.add(domain)
 
-        for i in xrange(min(num_attempts, top_results)):
+        for i in xrange(min(num_attempts, len(top_results))):
             if self.verbose:
                 print('Searching {}'.format(top_results[i]))
 
