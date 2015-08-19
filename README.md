@@ -32,7 +32,7 @@ ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com
     optional arguments:
       -h, --help            show this help message and exit
       -a [ATTEMPTS], --attempts [ATTEMPTS]
-                            number of attempts to resolve each ABV (default: 5)
+                            number of attempts to resolve each ABV (default: 10)
       -f [FILTER [FILTER ...]], --filter [FILTER [FILTER ...]]
                             find kegs with descriptions matching these keywords
       -l [LIMIT], --limit [LIMIT]
