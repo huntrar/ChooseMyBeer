@@ -50,36 +50,40 @@ class BeerKeg(object):
         try:
             self.name = html.xpath('//h1/text()')[0].strip()
             if '(' in self.name and ')' in self.name:
-                    split_name = self.name.split('(')
-                    self.name = split_name[0].strip()
+                split_name = self.name.split('(')
+                self.name = split_name[0].strip()
 
-                    volume = filter(lambda x: is_num(x) if '.' not in x else x, split_name[1].strip(')').strip())
-                    if is_num(volume):
-                        self.volume = float(volume)
-                    else:
-                        self.volume = 0.0
+                volume = filter(lambda x: is_num(x) if '.' not in x \
+                                else x, split_name[1].strip(')').strip())
+                if is_num(volume):
+                    self.volume = float(volume)
+                else:
+                    self.volume = 0.0
             else:
                 self.volume = 0.0
-        except Exception as e:
+        except Exception:
             self.name = ''
             self.volume = 0.0
-            
+
         ''' Attempt to get price '''
         try:
-            self.price = float(html.xpath('//span[@class="ProductDetailItemPrice"]/text()')[0].strip().strip('$'))
-        except Exception as e:
+            self.price = float(html.xpath('//span[@class="ProductDetailItemPric\
+                                          e"]/text()')[0].strip().strip('$'))
+        except Exception:
             self.price = 0.0
-       
+
         ''' Attempt to get number of available kegs '''
         try:
-            self.num_avail = int(html.xpath('//em/text()')[0].strip().split()[0])
-        except Exception as e:
+            self.num_avail = int(html.xpath('//em/text()\
+                                            ')[0].strip().split()[0])
+        except Exception:
             self.num_avail = 0
-        
+
         ''' Attempt to get description '''
         try:
-            self.desc = html.xpath('//td[@class="ProductDetailCell"]/p/text()')[0].strip()
-        except Exception as e:
+            self.desc = html.xpath('//td[@class="ProductDetailCell"]/p/text()\
+                                   ')[0].strip()
+        except Exception:
             self.desc = ''
 
 
@@ -89,25 +93,27 @@ class BeerKeg(object):
         found_abv = ''
 
         ''' A ceiling for ABV content for validation
-        
-            We can assume BevMo does not offer kegs with this high of an alcohol content
+
+            We can assume BevMo does not offer kegs with this high of an ABV
         '''
         max_abv = 20.0
-        
+
         if not self.parsed:
             self.parse()
 
-        search_url = 'https://www.bing.com/search?q=' + '+'.join(self.name.split()) + '+alcohol+content'
+        search_url = 'https://www.bing.com/search?q={0}+alcohol+content\
+                     '.format('+'.join(self.name.split()))
         search_links = get_html(search_url).xpath('//a/@href')
+        new_search_links = search_links[search_links.index('javascript:'):][1:]
 
-        results = filter(lambda x: x != '#' and 'site:' not in x, search_links[search_links.index('javascript:'):][1:])
+        results = [x for x in new_search_links if x != '#' and 'site:' not in x]
 
         ''' Max number of links to search for alcohol by volume (ABV) '''
         num_attempts = self.num_attempts
 
         ''' Filter links with same domain to improve chances of matching '''
         searched_domains = set()
-        
+
         ''' Add the top page results that are unique, r_it is an iterator '''
         top_results = []
         r_it = 0
@@ -140,7 +146,9 @@ class BeerKeg(object):
                 continue
 
             ''' Retrieves partial string containing the words ABV and a % '''
-            abv = re.search('(?<=[Aa][Bb][Vv])[^\d]*(\d+[.]?\d*)(?=%)|(?<=%)[^\d]*(\d+[.]?\d*)[^\d]*(?=[Aa][Bb][Cc])', search_text)
+            abv = re.search('(?<=[Aa][Bb][Vv])[^\d]*(\d+[.]?\d*)(?=%)|(?<=%)\
+                            [^\d]*(\d+[.]?\d*)[^\d]*\
+                            (?=[Aa][Bb][Cc])', search_text)
             if abv:
                 abv = abv.group()
 
@@ -148,8 +156,7 @@ class BeerKeg(object):
                 abv = float(re.search('(\d+[.]?\d*)', abv).group())
 
                 ''' If new ABV is 0.0, return previously found ABV if any
-                
-                    Otherwise, move onto the next link
+                    otherwise, move onto the next link
                 '''
                 if abv == 0.0:
                     if found_abv:
@@ -159,26 +166,26 @@ class BeerKeg(object):
                         continue
 
                 if abv < max_abv:
-                    ''' If ABV is under the half the ceiling limit we assume its correctness '''
                     if abv < max_abv / 2:
                         if self.verbose:
                             print('ABV for {} is {}'.format(self.name, abv))
-                
+
                         return abv
 
-                    ''' Replace the new ABV only if the next link lists a lower ABV '''
+                    ''' Replace the new ABV only if the next is lower '''
                     if found_abv:
                         if abv < found_abv:
                             if self.verbose:
                                 print('ABV for {} is {}'.format(self.name, abv))
-                    
+
                             return abv
                         else:
                             if self.verbose:
-                                print('ABV for {} is {}'.format(self.name, found_abv))
-                    
+                                print('ABV for {} is {}\
+                                      '.format(self.name, found_abv))
+
                             return found_abv
-                    
+
                     ''' Sets the new ABV to the found ABV '''
                     found_abv = abv
             else:
