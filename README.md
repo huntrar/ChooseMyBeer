@@ -1,5 +1,7 @@
 # ChooseMyBeer
 
+## Note: Currently nonfunctional as BevMo added a popup for age confirmation, and there has yet to be a workaround implemented in this project. You can still view the results last updated in August 2015 below.
+
 ## find the keg that's right for you
 ChooseMyBeer is intended to calculate the [BevMo beer kegs](http://www.bevmo.com/Shop/ProductList.aspx/Beer/Kegs/_/N-15Z1z141vn?DNID=Beer) with the highest alcohol volume per USD. The alcohol percentage for each keg is found by using the top result from bing. The user is given a menu to choose from the top kegs, accompanied by their volume in gallons, price, availability, and description. Choosing a keg will open the relevant BevMo page in your browser.
 
